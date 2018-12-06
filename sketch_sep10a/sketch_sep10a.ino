@@ -1,12 +1,18 @@
 #include <Servo.h>
 
 #define DEFAULT_INPUT_NUMBER 2
-#define TOTAL_INPUT_NUMBER DEFAULT_INPUT_NUMBER
+
+// Permet de Rajouter autant d'entrées dans le tableau que nécessaire
+// A compléter avec le corps de la fonction setup()
+const int totalInputNumber = DEFAULT_INPUT_NUMBER
+#ifdef TOTO
+  + TOTO
+#endif
+  ;
 
 class AbstractInputListener{
   public:
     AbstractInputListener(int paPinNumber, String paNom, int priorite);
-    virtual ~AbstractInputListener();
     virtual void updateAngle() = 0;
     int getAngle() const;
     int getDefaultAngle() const;
@@ -14,19 +20,19 @@ class AbstractInputListener{
     String getNom() const;
 
  protected:  
-    int _angle;
+    int _angle; // angle enregistré au dernier appel de updateAngle 
     int _defaultAngle; // angle par défaut, util pour prendre en compte le trim
     const int _pinNumber;
     const int _priorite;
     const String _nom;  
 };
 
-AbstractInputListener::AbstractInputListener(int paPinNumber, String paNom, int priorite) : _angle(0), _defaultAngle(90), _priorite(priorite), _pinNumber(paPinNumber), _nom(paNom)
-{
- 
-};
-
-AbstractInputListener::~AbstractInputListener() 
+AbstractInputListener::AbstractInputListener(int paPinNumber, String paNom, int priorite) : 
+  _angle(0), 
+  _defaultAngle(90),  
+  _pinNumber(paPinNumber),
+  _priorite(priorite), 
+  _nom(paNom)
 {
  
 };
@@ -56,36 +62,42 @@ String AbstractInputListener::getNom() const
 class RadioInputListener : public AbstractInputListener{
   public:
     RadioInputListener(int paPinNumber, String paNom);
-    void updateAngle();
+    virtual void updateAngle();
 };
 
-RadioInputListener::RadioInputListener(int paPinNumber, String paNom) : AbstractInputListener(paPinNumber, paNom, 4)
+RadioInputListener::RadioInputListener(int paPinNumber, String paNom) : 
+  AbstractInputListener(paPinNumber, paNom, 4)
 {
-  int duree;
+  int duree(1300); // Durée d'une impulsion
   pulseIn(_pinNumber, duree);
-  int angle = map(duree, 1100, 1500, 0, 180);
-  _defaultAngle = angle;
+  int angle = map(duree, 1100, 1500, 0, 180); // Conversion de la durée en angle, les durées min et max sont empiriques
+  _defaultAngle = angle; // La trim sur les différents volets de control doit etre déjà réglée pour etre considérée comme l'angle de référence
 };
 
 void RadioInputListener::updateAngle()
 {
-  int duree;
+  int duree(1300);
   pulseIn(_pinNumber, duree);
   _angle = map(duree, 1100, 1500, 0, 180);  
 };
 
 ///////////////////////////////////////////////////////////////////////////
+// Détermine si l'utilisateur envoi une commande ou non
 // Parcours la liste des éléments
 // Si une action est faite par l'utilisateur alors renvoyer true (on est en mode manuel)
 // Il faut scruter les éléments RadioElevator, RadioRudder et RadioAileron et voir si l'angle est différent de l'angle par défaut
 bool ManualMode(AbstractInputListener *inputList[])
 {
   bool result(false);
-  for (int i=0; i< TOTAL_INPUT_NUMBER; i++) // Modification des sorties en fonction des entrées
+  int deltaAngle(5); 
+  for (int i=0; i< totalInputNumber; i++)
   {
     if ((inputList[i]->getNom() == "RadioElevator") or (inputList[i]->getNom() == "RadioRudder") or (inputList[i]->getNom() == "RadioAileron"))
     {
-      result = result || (inputList[i]->getDefaultAngle() != inputList[i]->getAngle()); // utiliser un taux de divergence?
+      // On considère une marge d'incertitude sur l'angle : deltaAngle
+      result = result || 
+               (inputList[i]->getDefaultAngle() + deltaAngle < inputList[i]->getAngle()) ||
+               (inputList[i]->getDefaultAngle() - deltaAngle > inputList[i]->getAngle()); 
       if (result)
       {
         break; 
@@ -119,37 +131,40 @@ void UpdateAngle(int &paAngleOrigine, int &paPrioriteOrigine, int paNouvelAngle,
 void ManageInputs(AbstractInputListener *inputList[], Servo *servoElevator, Servo *servoRudder)
 {
   int angleElevator(-1);
-  int prioriteElevator(-1);
+  //int prioriteElevator(-1);
   //
   int angleRudder(-1);
-  int prioriteRudder(-1);
+  //int prioriteRudder(-1);
   //
   bool manualMode(ManualMode(inputList));
   //
-  for (int i=0; i< TOTAL_INPUT_NUMBER; i++) // Modification des sorties en fonction des entrées
+  for (int i=0; i< totalInputNumber; i++) // Modification des sorties en fonction des entrées
   {
       int loAngle(inputList[i]->getAngle());
-      int loPriorite(inputList[i]->getPriorite());
+//      int loPriorite(inputList[i]->getPriorite());
       //
       if (manualMode and inputList[i]->getNom() == "RadioElevator") // Ne prendre en compte que si on est en mode manuel
       {
         angleElevator = loAngle;
-        prioriteElevator = loPriorite;
+//        prioriteElevator = loPriorite;
       }else if (manualMode and inputList[i]->getNom() == "RadioRudder") // Ne prendre en compte que si on est en mode manuel
       {
         angleRudder = loAngle;
-        prioriteRudder = loPriorite;
+//        prioriteRudder = loPriorite;
       }else if (manualMode and inputList[i]->getNom() == "RadioAileron") // Ne prendre en compte que si on est en mode manuel
       {
         // TODO
         // angleElevator = loAngle;
         // prioriteElevator = loPriorite;
       }
-//      else if (!manualMode and inputList[i]->getNom() == ...) // TODO, modèle pour les autres entrées
+      // TODO, gérer les entrées automatiques
+//      else if (!manualMode and inputList[i]->getNom() == ...) modèle pour les autres entrées
 //      {
-//        int &refAngle(...);
-//        int &refPriorite(...);
-//        UpdateAngle(refAngle, refPriorite, loAngle, loPriorite);    
+//        UpdateAngle(angleElevator, prioriteElevator, loAngle, loPriorite);  
+//        ou  
+//        UpdateAngle(angleRudder, prioriteRudder, loAngle, loPriorite);  
+//        ou  
+//        ... 
 //      }       
   }
   // Appliquer les nouveaux angles sur les sorties
@@ -170,19 +185,25 @@ Servo servoElevator;
 Servo servoRudder;
 
 // Gestion d'évenements
-AbstractInputListener *inputList[TOTAL_INPUT_NUMBER];
+AbstractInputListener *inputList[totalInputNumber];
 
 void setup() {
   inputList[0] = new RadioInputListener(pinRadioElevatorListener, "RadioElevator");
   inputList[1] = new RadioInputListener(pinRadioRudderListener, "RadioRudder");
+#ifdef TOTO
+  // Permet de rajouter autant d'entrées que nécessaire
+  // inputList[1] = new ...
+#endif
+  ;
   servoElevator.attach(pinServoElevator);
   servoRudder.attach(pinServoRudder);
 };
 
 void loop() {
-  for (int i =0; i<TOTAL_INPUT_NUMBER; i++){
+  // Mettre-à-jour les angles d'entrée
+  for (int i =0; i<totalInputNumber; i++){
     inputList[i]->updateAngle(); 
   };
-  //
+  // Mettre-à-jour les angles de sortie
   ManageInputs(inputList, &servoElevator, &servoRudder);
 };
