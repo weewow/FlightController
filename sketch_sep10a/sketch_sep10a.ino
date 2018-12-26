@@ -1,6 +1,7 @@
 #include <Servo.h>
 
 #define DEFAULT_INPUT_NUMBER 2
+#define DEBUG_MODE
 
 // Permet de Rajouter autant d'entrées dans le tableau que nécessaire
 // A compléter avec le corps de la fonction setup()
@@ -9,6 +10,7 @@ const int totalInputNumber = DEFAULT_INPUT_NUMBER
   + TOTO
 #endif
   ;
+
 
 class AbstractInputListener{
   public:
@@ -65,11 +67,18 @@ class RadioInputListener : public AbstractInputListener{
     virtual void updateAngle();
 };
 
+void PrintDebug(String msg)
+{
+  #ifdef DEBUG_MODE
+    Serial.println(msg);
+  #endif;
+};
+
 RadioInputListener::RadioInputListener(int paPinNumber, String paNom) : 
   AbstractInputListener(paPinNumber, paNom, 4)
 {
   int duree(1300); // Durée d'une impulsion
-  pulseIn(_pinNumber, duree);
+  duree = pulseIn(_pinNumber, HIGH); // Lecture sur pin digital seulement
   int angle = map(duree, 1100, 1500, 0, 180); // Conversion de la durée en angle, les durées min et max sont empiriques
   _defaultAngle = angle; // La trim sur les différents volets de control doit etre déjà réglée pour etre considérée comme l'angle de référence
 };
@@ -77,8 +86,10 @@ RadioInputListener::RadioInputListener(int paPinNumber, String paNom) :
 void RadioInputListener::updateAngle()
 {
   int duree(1300);
-  pulseIn(_pinNumber, duree);
+  duree = pulseIn(_pinNumber, HIGH);
   _angle = map(duree, 1100, 1500, 0, 180);  
+  if(getNom() == "RadioElevator")
+    PrintDebug(getNom()+" angle mis-à-jour : "+duree+" ms");
 };
 
 ///////////////////////////////////////////////////////////////////////////
@@ -89,12 +100,16 @@ void RadioInputListener::updateAngle()
 bool ManualMode(AbstractInputListener *inputList[])
 {
   bool result(false);
-  int deltaAngle(5); 
+  int deltaAngle(5);
+  //String debugText("Angles manuels trouvés : ");
+  //int debugNbEntrees(0); 
   for (int i=0; i< totalInputNumber; i++)
   {
     if ((inputList[i]->getNom() == "RadioElevator") or (inputList[i]->getNom() == "RadioRudder") or (inputList[i]->getNom() == "RadioAileron"))
     {
       // On considère une marge d'incertitude sur l'angle : deltaAngle
+      //debugNbEntrees++;
+      //debugText += " | " + inputList[i]->getAngle();
       result = result || 
                (inputList[i]->getDefaultAngle() + deltaAngle < inputList[i]->getAngle()) ||
                (inputList[i]->getDefaultAngle() - deltaAngle > inputList[i]->getAngle()); 
@@ -104,6 +119,8 @@ bool ManualMode(AbstractInputListener *inputList[])
       }
     }
   }
+  //String toto(debugNbEntrees);
+  //PrintDebug(5);
   return result;
 }
 
@@ -138,6 +155,7 @@ void ManageInputs(AbstractInputListener *inputList[], Servo *servoElevator, Serv
   //
   bool manualMode(ManualMode(inputList));
   //
+
   for (int i=0; i< totalInputNumber; i++) // Modification des sorties en fonction des entrées
   {
       int loAngle(inputList[i]->getAngle());
@@ -145,10 +163,12 @@ void ManageInputs(AbstractInputListener *inputList[], Servo *servoElevator, Serv
       //
       if (manualMode and inputList[i]->getNom() == "RadioElevator") // Ne prendre en compte que si on est en mode manuel
       {
+        
         angleElevator = loAngle;
 //        prioriteElevator = loPriorite;
       }else if (manualMode and inputList[i]->getNom() == "RadioRudder") // Ne prendre en compte que si on est en mode manuel
       {
+        
         angleRudder = loAngle;
 //        prioriteRudder = loPriorite;
       }else if (manualMode and inputList[i]->getNom() == "RadioAileron") // Ne prendre en compte que si on est en mode manuel
@@ -156,6 +176,8 @@ void ManageInputs(AbstractInputListener *inputList[], Servo *servoElevator, Serv
         // TODO
         // angleElevator = loAngle;
         // prioriteElevator = loPriorite;
+      }else{
+        
       }
       // TODO, gérer les entrées automatiques
 //      else if (!manualMode and inputList[i]->getNom() == ...) modèle pour les autres entrées
@@ -194,7 +216,9 @@ void setup() {
   // Permet de rajouter autant d'entrées que nécessaire
   // inputList[1] = new ...
 #endif
-  ;
+#ifdef DEBUG_MODE
+  Serial.begin(9600);
+#endif;
   servoElevator.attach(pinServoElevator);
   servoRudder.attach(pinServoRudder);
 };
@@ -205,5 +229,8 @@ void loop() {
     inputList[i]->updateAngle(); 
   };
   // Mettre-à-jour les angles de sortie
-  ManageInputs(inputList, &servoElevator, &servoRudder);
+  //ManageInputs(inputList, &servoElevator, &servoRudder);
+//#ifdef DEBUG_MODE
+  delay(1000);
+//#endif;
 };
