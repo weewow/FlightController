@@ -1,6 +1,8 @@
 #include <Servo.h>
 
 #define DEFAULT_INPUT_NUMBER 2
+#define RADIO_INPUT_MIN_PPM 1120 // durée min d'un signal de radiocommande (empirique)
+#define RADIO_INPUT_MAX_PPM 1930 // durée max d'un signal de radiocommande (empirique)
 #define DEBUG_MODE
 
 // Permet de Rajouter autant d'entrées dans le tableau que nécessaire
@@ -36,7 +38,7 @@ AbstractInputListener::AbstractInputListener(int paPinNumber, String paNom, int 
   _priorite(priorite), 
   _nom(paNom)
 {
- 
+  pinMode(_pinNumber, INPUT); 
 };
 
 int AbstractInputListener::getPriorite() const
@@ -79,7 +81,7 @@ RadioInputListener::RadioInputListener(int paPinNumber, String paNom) :
 {
   int duree(1300); // Durée d'une impulsion
   duree = pulseIn(_pinNumber, HIGH); // Lecture sur pin digital seulement
-  int angle = map(duree, 1100, 1500, 0, 180); // Conversion de la durée en angle, les durées min et max sont empiriques
+  int angle = map(duree, RADIO_INPUT_MIN_PPM, RADIO_INPUT_MAX_PPM, 0, 180); // Conversion de la durée en angle, les durées min et max sont empiriques
   _defaultAngle = angle; // La trim sur les différents volets de control doit etre déjà réglée pour etre considérée comme l'angle de référence
 };
 
@@ -87,7 +89,7 @@ void RadioInputListener::updateAngle()
 {
   int duree(1300);
   duree = pulseIn(_pinNumber, HIGH);
-  _angle = map(duree, 1100, 1500, 0, 180);  
+  _angle = map(duree, RADIO_INPUT_MIN_PPM, RADIO_INPUT_MAX_PPM, 0, 180);  
   if(getNom() == "RadioElevator")
     PrintDebug(getNom()+" angle mis-à-jour : "+duree+" ms");
 };
@@ -201,8 +203,8 @@ int pinRadioElevatorListener(1);
 int pinRadioRudderListener(2);
 
 // Sorties
-int pinServoElevator(6);
-int pinServoRudder(7);
+int pinServoElevator(6); // D6
+int pinServoRudder(7);   // D7
 Servo servoElevator;
 Servo servoRudder;
 
