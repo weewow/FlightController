@@ -91,7 +91,7 @@ void RadioInputListener::updateAngle()
   duree = pulseIn(_pinNumber, HIGH);
   _angle = map(duree, RADIO_INPUT_MIN_PPM, RADIO_INPUT_MAX_PPM, 0, 180);  
   if(getNom() == "RadioElevator")
-    PrintDebug(getNom()+" angle mis-à-jour : "+duree+" ms");
+    PrintDebug(getNom()+" angle mis-à-jour : "+_angle+" ° | durée mesurée : "+duree);
 };
 
 ///////////////////////////////////////////////////////////////////////////
@@ -198,11 +198,11 @@ void ManageInputs(AbstractInputListener *inputList[], Servo *servoElevator, Serv
 
 ///////////////////////////////////////////////////////////////////////////
 
-// Entrées
-int pinRadioElevatorListener(1);
-int pinRadioRudderListener(2);
+// Entrées (numériques)
+int pinRadioElevatorListener(3); // D3
+int pinRadioRudderListener(4); // D4
 
-// Sorties
+// Sorties (numériques)
 int pinServoElevator(6); // D6
 int pinServoRudder(7);   // D7
 Servo servoElevator;
@@ -212,6 +212,8 @@ Servo servoRudder;
 AbstractInputListener *inputList[totalInputNumber];
 
 void setup() {
+  pinMode(pinRadioElevatorListener, INPUT);
+  pinMode(pinRadioRudderListener, INPUT);
   inputList[0] = new RadioInputListener(pinRadioElevatorListener, "RadioElevator");
   inputList[1] = new RadioInputListener(pinRadioRudderListener, "RadioRudder");
 #ifdef TOTO
