@@ -8,8 +8,13 @@ void setup() {
 }
 
 void loop() {
-  myservo.write(1);        
+  myservo.write(90);        
   delay(sleeptime);
   myservo.write(179);        
   delay(sleeptime);
+  myservo.write(90);        
+  delay(sleeptime);
+  myservo.write(1);        
+  delay(sleeptime);
+//myservo.write(90);
 }
