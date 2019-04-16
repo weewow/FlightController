@@ -1,7 +1,7 @@
 #include <Servo.h>
 
 Servo myservo;  
-int sleeptime = 1000;  
+int sleeptime = 20; 
 
 void setup() {
   pinMode(3, INPUT);
@@ -10,14 +10,14 @@ void setup() {
   myservo.attach(6);  // D6
 }
 
-void loop() {
+void loop() { 
   int duree(1300);
   int angle(0);
   duree = pulseIn(3, HIGH);
-  angle = map(duree, 1170, 2000, 0, 180);  
-  if (angle < 200){ // Pour éviter la majorité des bruits
+  angle = map(duree, 1170, 1900, 0, 180);  
+  if ((angle > 0) and (angle < 200)){ // Pour éviter la majorité des bruits
     myservo.write(angle);
-    delay(200);
+    delay(sleeptime);
     // Serial.println(String(" angle : ")+angle+String(" ° | durée mesurée : ")+duree);
   }
 }
