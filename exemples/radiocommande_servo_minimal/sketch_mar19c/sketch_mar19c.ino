@@ -14,7 +14,7 @@ void loop() {
   int duree(1300);
   int angle(0);
   duree = pulseIn(3, HIGH);
-  angle = map(duree, 1170, 1900, 0, 180);  
+  angle = map(duree, 1170, 1800, 0, 180);  
   if ((angle > 0) and (angle < 200)){ // Pour éviter la majorité des bruits
     myservo.write(angle);
     delay(sleeptime);

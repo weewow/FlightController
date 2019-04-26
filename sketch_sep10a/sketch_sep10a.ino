@@ -1,8 +1,8 @@
 #include <Servo.h>
 
 #define DEFAULT_INPUT_NUMBER 2
-#define RADIO_INPUT_MIN_PPM 1120 // durée min d'un signal de radiocommande (empirique)
-#define RADIO_INPUT_MAX_PPM 1930 // durée max d'un signal de radiocommande (empirique)
+#define RADIO_INPUT_MIN_PWM 1000 // durée min d'un signal de radiocommande (empirique)
+#define RADIO_INPUT_MAX_PWM 2000 // durée max d'un signal de radiocommande (empirique)
 #define DEBUG_MODE
 
 // Permet de Rajouter autant d'entrées dans le tableau que nécessaire
@@ -80,18 +80,24 @@ RadioInputListener::RadioInputListener(int paPinNumber, String paNom) :
   AbstractInputListener(paPinNumber, paNom, 4)
 {
   int duree(1300); // Durée d'une impulsion
-  duree = pulseIn(_pinNumber, HIGH); // Lecture sur pin digital seulement
-  int angle = map(duree, RADIO_INPUT_MIN_PPM, RADIO_INPUT_MAX_PPM, 0, 180); // Conversion de la durée en angle, les durées min et max sont empiriques
-  _defaultAngle = angle; // La trim sur les différents volets de control doit etre déjà réglée pour etre considérée comme l'angle de référence
+  
+    duree = pulseIn(_pinNumber, HIGH); // Lecture sur pin digital seulement
+  if ((duree >= RADIO_INPUT_MIN_PWM) and (duree <= RADIO_INPUT_MAX_PWM)){ // Filtrer les valeurs parasites
+    int angle = map(duree, RADIO_INPUT_MIN_PWM, RADIO_INPUT_MAX_PWM, 0, 180); // Conversion de la durée en angle, les durées min et max sont empiriques
+    _defaultAngle = angle; // La trim sur les différents volets de control doit etre déjà réglée pour etre considérée comme l'angle de référence
+  }
 };
 
 void RadioInputListener::updateAngle()
 {
   int duree(1300);
-  duree = pulseIn(_pinNumber, HIGH);
-  _angle = map(duree, RADIO_INPUT_MIN_PPM, RADIO_INPUT_MAX_PPM, 0, 180);  
-  if(getNom() == "RadioElevator")
-    PrintDebug(getNom()+" angle mis-à-jour : "+_angle+" ° | durée mesurée : "+duree);
+  
+    duree = pulseIn(_pinNumber, HIGH); // Lecture sur pin digital seulement
+  if ((duree >= RADIO_INPUT_MIN_PWM) and (duree <= RADIO_INPUT_MAX_PWM)){ // Filtrer les valeurs parasites
+    _angle = map(duree, RADIO_INPUT_MIN_PWM, RADIO_INPUT_MAX_PWM, 0, 180);  
+    //if(getNom() == "RadioElevator")
+      //PrintDebug(getNom()+" angle mis-à-jour : "+_angle+" ° | durée mesurée : "+duree);
+  }
 };
 
 ///////////////////////////////////////////////////////////////////////////
@@ -107,14 +113,24 @@ bool ManualMode(AbstractInputListener *inputList[])
   //int debugNbEntrees(0); 
   for (int i=0; i< totalInputNumber; i++)
   {
-    if ((inputList[i]->getNom() == "RadioElevator") or (inputList[i]->getNom() == "RadioRudder") or (inputList[i]->getNom() == "RadioAileron"))
+    // or (inputList[i]->getNom() == "RadioRudder") or (inputList[i]->getNom() == "RadioAileron")
+    if ((inputList[i]->getNom() == "RadioElevator") )
     {
       // On considère une marge d'incertitude sur l'angle : deltaAngle
       //debugNbEntrees++;
       //debugText += " | " + inputList[i]->getAngle();
       result = result || 
-               (inputList[i]->getDefaultAngle() + deltaAngle < inputList[i]->getAngle()) ||
-               (inputList[i]->getDefaultAngle() - deltaAngle > inputList[i]->getAngle()); 
+               (inputList[i]->getAngle() > inputList[i]->getDefaultAngle() + deltaAngle) ||
+               (inputList[i]->getAngle() < inputList[i]->getDefaultAngle() - deltaAngle); 
+      //
+      //PrintDebug("");
+      //PrintDebug("nouvel angle :     "+String(inputList[i]->getAngle()));
+      //PrintDebug("angle par défaut : "+String(inputList[i]->getDefaultAngle())); 
+//      PrintDebug("--");
+//      PrintDebug(String(result));
+//      PrintDebug(String(inputList[i]->getAngle() > inputList[i]->getDefaultAngle() + deltaAngle));
+//      PrintDebug(String(inputList[i]->getAngle() < inputList[i]->getDefaultAngle() - deltaAngle));
+      //
       if (result)
       {
         break; 
@@ -156,6 +172,7 @@ void ManageInputs(AbstractInputListener *inputList[], Servo *servoElevator, Serv
   //int prioriteRudder(-1);
   //
   bool manualMode(ManualMode(inputList));
+  PrintDebug("mode manuel ? "+String(manualMode));
   //
 
   for (int i=0; i< totalInputNumber; i++) // Modification des sorties en fonction des entrées
@@ -164,13 +181,11 @@ void ManageInputs(AbstractInputListener *inputList[], Servo *servoElevator, Serv
 //      int loPriorite(inputList[i]->getPriorite());
       //
       if (manualMode and inputList[i]->getNom() == "RadioElevator") // Ne prendre en compte que si on est en mode manuel
-      {
-        
+      {        
         angleElevator = loAngle;
 //        prioriteElevator = loPriorite;
       }else if (manualMode and inputList[i]->getNom() == "RadioRudder") // Ne prendre en compte que si on est en mode manuel
-      {
-        
+      {        
         angleRudder = loAngle;
 //        prioriteRudder = loPriorite;
       }else if (manualMode and inputList[i]->getNom() == "RadioAileron") // Ne prendre en compte que si on est en mode manuel
@@ -233,8 +248,8 @@ void loop() {
     inputList[i]->updateAngle(); 
   };
   // Mettre-à-jour les angles de sortie
-  //ManageInputs(inputList, &servoElevator, &servoRudder);
+  ManageInputs(inputList, &servoElevator, &servoRudder);
 //#ifdef DEBUG_MODE
-  delay(1000);
+  delay(20);
 //#endif;
 };
