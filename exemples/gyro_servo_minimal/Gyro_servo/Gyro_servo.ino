@@ -1,36 +1,5 @@
-// MPU-9150 Accelerometer + Gyro + Compass + Temperature
-// -----------------------------
-//
-// By arduino.cc user "frtrobotik" (Tobias HÃ¼bner)
-//
-//
-// July 2013
-//      first version
-//
-// Open Source / Public Domain
-//
-// Using Arduino 1.0.1
-// It will not work with an older version,
-// since Wire.endTransmission() uses a parameter
-// to hold or release the I2C bus.
-//
-// Documentation:
-// - The InvenSense documents:
-//   - "MPU-9150 Product Specification Revision 4.0",
-//     PS-MPU-9150A.pdf
-//   - "MPU-9150 Register Map and Descriptions Revision 4.0",
-//     RM-MPU-9150A-00.pdf
-//   - "MPU-9150 9-Axis Evaluation Board User Guide"
-//     AN-MPU-9150EVB-00.pdf
-//
-// The accuracy is 16-bits.
-//
-// Some parts are copied by the MPU-6050 Playground page.
-// playground.arduino.cc/Main/MPU-6050
-// There are more Registervalues. Here are only the most
-// nessecary ones to get started with this sensor.
-
 #include <Wire.h>
+#include <Servo.h>
 
 // Register names according to the datasheet.
 // According to the InvenSense document
@@ -144,6 +113,8 @@ int accl[3];
 int gyro[3];
 int temp;
 
+Servo monServo;
+
 void setup()
 {      
   // Initialize the Serial Bus for printing data.
@@ -156,6 +127,8 @@ void setup()
   MPU9150_writeSensor(MPU9150_PWR_MGMT_1, 0);
 
   MPU9150_setupCompass();
+
+  monServo.attach(5);
 }
 
 
@@ -165,6 +138,8 @@ void loop()
   // Formated all values as x, y, and z in order for
   // Compass, Gyro, Acceleration. The First value is
   // the temperature.
+
+  int val(0);
 
   /*double dT = ( (double) MPU9150_readSensor(MPU9150_TEMP_OUT_L,MPU9150_TEMP_OUT_H) + 12412.0) / 340.0;
   Serial.print(dT);
@@ -183,12 +158,16 @@ void loop()
   Serial.print(MPU9150_readSensor(MPU9150_GYRO_ZOUT_L,MPU9150_GYRO_ZOUT_H));
   Serial.print("  ");*/
   
-  Serial.print(MPU9150_readSensor(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H));
+  /*Serial.print(MPU9150_readSensor(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H));
   Serial.print("  ");
   Serial.print(MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H));
   Serial.print("  ");
   Serial.print(MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L,MPU9150_ACCEL_ZOUT_H));
   Serial.println();
+  delay(100);*/
+
+  val = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H);
+  monServo.write(map(val, -22000, 26000, 0, 180));
   delay(100);
 }
 
