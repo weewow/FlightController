@@ -131,6 +131,10 @@ void setup()
   monServo.attach(5);
 }
 
+int16_t  AcX, AcY, GyZ;
+float robot_angle;
+float Acc_angle;            //angle calculated from acc. measurments
+#define Gyro_amount 0.996   //percent of gyro in complementary filter T/(T+del_t) del_t: sampling rate, T acc. timeconstant ~1s
 
 void loop()
 {
@@ -139,7 +143,8 @@ void loop()
   // Compass, Gyro, Acceleration. The First value is
   // the temperature.
 
-  int val(0);
+  int valx(0);
+  int valy(0);
 
   /*double dT = ( (double) MPU9150_readSensor(MPU9150_TEMP_OUT_L,MPU9150_TEMP_OUT_H) + 12412.0) / 340.0;
   Serial.print(dT);
@@ -166,8 +171,37 @@ void loop()
   Serial.println();
   delay(100);*/
 
-  val = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H);
-  monServo.write(map(val, -22000, 26000, 0, 180));
+  /*// TEST 1
+  valx = MPU9150_readSensor(MPU9150_GYRO_XOUT_L,MPU9150_GYRO_XOUT_H);
+  valy = MPU9150_readSensor(MPU9150_GYRO_YOUT_L,MPU9150_GYRO_YOUT_H);
+  //
+  valx = map(valx, -22000, 26000, 0, 180); 
+  valy = map(valy, -22000, 26000, 0, 180); 
+  //
+  //*180/PI pour convertir les radians en degré
+  monServo.write(valx);
+  delay(100); */
+
+  /*// TEST 2
+  AcX = MPU9150_readSensor(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H);
+  AcY = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H); 
+  GyZ = MPU9150_readSensor(MPU9150_GYRO_ZOUT_L,MPU9150_GYRO_ZOUT_H);
+  
+  //use complementary filter to calculate robot angle
+  robot_angle += GyZ * 6.07968E-5;                      //integrate gyroscope to get angle       * 0.003984 (sec) / 65.536 (bits / (deg/sec))
+  Acc_angle =  atan2(AcY, -AcX) * 57.2958;              //angle from acc. values       * 57.2958 (deg/rad)
+  robot_angle += robot_angle * Gyro_amount + Acc_angle * (1.0 - Gyro_amount);
+  
+  monServo.write(robot_angle);*/
+
+  // TEST 3
+  AcX = MPU9150_readSensor(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H);
+  AcY = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H);
+  robot_angle = atan2(AcX, AcY);
+  Serial.print(robot_angle);
+  Serial.print(" ");
+  Serial.println(map(robot_angle, -4, 4, 0, 180));
+  monServo.write(map(robot_angle, -4, 4, 0, 180));
   delay(100);
 }
 
