@@ -135,17 +135,25 @@ int16_t  AcX, AcY, GyZ;
 float robot_angle;
 float Acc_angle;            //angle calculated from acc. measurments
 #define Gyro_amount 0.996   //percent of gyro in complementary filter T/(T+del_t) del_t: sampling rate, T acc. timeconstant ~1s
+int valx(0);
+int valy(0);
+
+//
+float RADIANS_TO_DEGREES = 180/3.14159;
+int angle(90);
+float accel_x(0);
+float accel_y(0);
+float accel_z(0);
+float gyro_x(0);
+//
+float dt(0);
+float TimePrec(0);
+//
+float gyro_angle_x(0);
+float accel_angle_x(0);
 
 void loop()
 {
-  // Print all sensor values which the sensor provides
-  // Formated all values as x, y, and z in order for
-  // Compass, Gyro, Acceleration. The First value is
-  // the temperature.
-
-  int valx(0);
-  int valy(0);
-
   /*double dT = ( (double) MPU9150_readSensor(MPU9150_TEMP_OUT_L,MPU9150_TEMP_OUT_H) + 12412.0) / 340.0;
   Serial.print(dT);
   Serial.print("  ");
@@ -194,7 +202,7 @@ void loop()
   
   monServo.write(robot_angle);*/
 
-  // TEST 3
+  /*// TEST 3
   AcX = MPU9150_readSensor(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H);
   AcY = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H);
   robot_angle = atan2(AcX, AcY);
@@ -202,7 +210,26 @@ void loop()
   Serial.print(" ");
   Serial.println(map(robot_angle, -4, 4, 0, 180));
   monServo.write(map(robot_angle, -4, 4, 0, 180));
-  delay(100);
+  delay(100);*/
+
+  //test 4 Complementary filter
+  accel_x = MPU9150_readSensor(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H);
+  accel_y = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H);
+  accel_z = MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L,MPU9150_ACCEL_ZOUT_H);
+  gyro_x =  MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H);
+  //
+  dt =  millis() - TimePrec; // (double)MPU9150_readSensor(MPU9150_TEMP_OUT_L,MPU9150_TEMP_OUT_H) + 12412.0) / 340.0; //dt2-dt1;
+  TimePrec = millis();
+  //
+  gyro_angle_x = gyro_x*dt + angle;
+  accel_angle_x = atan(accel_y/sqrt(pow(accel_x,2) + pow(accel_z,2)))*RADIANS_TO_DEGREES;
+  //
+  angle = 0.98*gyro_angle_x + 0.02*accel_angle_x; // angle = 0.98 *(angle+GyrX*dt) + 0.02*accZ;
+  //
+  if (accel_angle_x < 0)
+    Serial.println(-1*accel_angle_x);
+  else
+    Serial.println(accel_angle_x);
 }
 
 //http://pansenti.wordpress.com/2013/03/26/pansentis-invensense-mpu-9150-software-for-arduino-is-now-on-github/
