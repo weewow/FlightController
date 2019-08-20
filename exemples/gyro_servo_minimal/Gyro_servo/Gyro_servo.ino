@@ -216,20 +216,33 @@ void loop()
   accel_x = MPU9150_readSensor(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H);
   accel_y = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H);
   accel_z = MPU9150_readSensor(MPU9150_ACCEL_ZOUT_L,MPU9150_ACCEL_ZOUT_H);
-  gyro_x =  MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H);
+  gyro_x =  MPU9150_readSensor(MPU9150_GYRO_XOUT_L, MPU9150_GYRO_XOUT_H) +350; // sans mouvement, l'accélération retournée est de -350 environs, on compense donc cette valeure
   //
   dt =  millis() - TimePrec; // (double)MPU9150_readSensor(MPU9150_TEMP_OUT_L,MPU9150_TEMP_OUT_H) + 12412.0) / 340.0; //dt2-dt1;
   TimePrec = millis();
   //
-  gyro_angle_x = gyro_x*dt + angle;
+  gyro_angle_x = gyro_x*(dt*0.001) + angle;
   accel_angle_x = atan(accel_y/sqrt(pow(accel_x,2) + pow(accel_z,2)))*RADIANS_TO_DEGREES;
   //
-  angle = 0.98*gyro_angle_x + 0.02*accel_angle_x; // angle = 0.98 *(angle+GyrX*dt) + 0.02*accZ;
-  //
   if (accel_angle_x < 0)
-    Serial.println(-1*accel_angle_x);
+    accel_angle_x = (-1*accel_angle_x);
   else
-    Serial.println(accel_angle_x);
+    accel_angle_x = (accel_angle_x);
+  //
+  angle = 0.2*gyro_angle_x + 0.8*accel_angle_x; // angle = 0.98 *(angle+GyrX*dt) + 0.02*accZ;
+    
+  /*Serial.print(gyro_x);
+  Serial.print(" - ");
+  Serial.print(dt*0.001);
+  Serial.print(" - ");
+  Serial.print(gyro_x*(dt*0.001));
+  Serial.print(" - ");
+  Serial.println(gyro_angle_x);*/
+
+  Serial.println(angle);
+
+  monServo.write(angle);
+  delay(100);
 }
 
 //http://pansenti.wordpress.com/2013/03/26/pansentis-invensense-mpu-9150-software-for-arduino-is-now-on-github/
