@@ -4,10 +4,8 @@
 // Register names according to the datasheet.
 // According to the InvenSense document
 // "MPU-9150 Register Map and Descriptions Revision 4.0",
-
 #define MPU9150_SELF_TEST_X        0x0D   // R/W
 #define MPU9150_SELF_TEST_Y        0x0E   // R/W
-#define MPU9150_SELF_TEST_X        0x0F   // R/W
 #define MPU9150_SELF_TEST_A        0x10   // R/W
 #define MPU9150_SMPLRT_DIV         0x19   // R/W
 #define MPU9150_CONFIG             0x1A   // R/W
@@ -107,38 +105,9 @@
 
 // I2C address 0x69 could be 0x68 depends on your wiring.
 int MPU9150_I2C_ADDRESS = 0x68;
-//Variables where our values can be stored
-int cmps[3];
-int accl[3];
-int gyro[3];
-int temp;
-
-Servo monServo;
-
-void setup()
-{      
-  // Initialize the Serial Bus for printing data.
-  Serial.begin(9600);
-
-  // Initialize the 'Wire' class for the I2C-bus.
-  Wire.begin();
-
-  // Clear the 'sleep' bit to start the sensor.
-  MPU9150_writeSensor(MPU9150_PWR_MGMT_1, 0);
-
-  MPU9150_setupCompass();
-
-  monServo.attach(5);
-}
-
-int16_t  AcX, AcY, GyZ;
-float robot_angle;
-float Acc_angle;            //angle calculated from acc. measurments
-#define Gyro_amount 0.996   //percent of gyro in complementary filter T/(T+del_t) del_t: sampling rate, T acc. timeconstant ~1s
-int valx(0);
-int valy(0);
-int cpt(0);
-
+//
+int cpt(0),
+    tempsAttente(0);
 //
 float RADIANS_TO_DEGREES = 180/3.14159;
 int angle(90);
@@ -152,6 +121,25 @@ float TimePrec(0);
 //
 float gyro_angle_x(0);
 float accel_angle_x(0);
+//
+int angleServo(90);
+int angleServoPrec(90); // Le dernier angle servo précédemment calculé
+//
+Servo monServo;
+
+void setup()
+{      
+  // Initialize the Serial Bus for printing data.
+  Serial.begin(9600);
+  // Initialize the 'Wire' class for the I2C-bus.
+  Wire.begin();
+  // Clear the 'sleep' bit to start the sensor.
+  MPU9150_writeSensor(MPU9150_PWR_MGMT_1, 0);
+  MPU9150_setupCompass();
+  monServo.attach(5);
+}
+
+
 
 void loop()
 {
@@ -213,8 +201,6 @@ void loop()
   monServo.write(map(robot_angle, -4, 4, 0, 180));
   delay(100);*/
 
-  int angleReel(90);
-
   //test 4 Complementary filter
   accel_x = MPU9150_readSensor(MPU9150_ACCEL_XOUT_L,MPU9150_ACCEL_XOUT_H);
   accel_y = MPU9150_readSensor(MPU9150_ACCEL_YOUT_L,MPU9150_ACCEL_YOUT_H);
@@ -229,7 +215,7 @@ void loop()
   //
   cpt = cpt + 1;
   //
-  if (cpt > 5)
+  if (cpt > 5) // moyenner les valeurs
   {
     gyro_angle_x = gyro_angle_x / cpt;
     gyro_angle_x = gyro_angle_x + angle;
@@ -237,33 +223,20 @@ void loop()
     //
     cpt = 0;
     //
-    //if (accel_angle_x < 0)
-    //  accel_angle_x = (-1*accel_angle_x);
-    //else
-    //  accel_angle_x = (accel_angle_x);
-    //
     angle = 0.2*gyro_angle_x + 0.8*accel_angle_x; // angle = 0.98 *(angle+GyrX*dt) + 0.02*accZ;
     //
-    angleReel = map(angle, -110, 110, 0, 179);
-    Serial.println(angleReel);
-    monServo.write(angleReel);
-    delay(100);
-  }else{
-    //Serial.println(cpt);
+    angleServo = map(angle, -110, 110, 0, 180);
+    //
+    //tempsAttente = abs(angleServo - angleServoPrec) * 1.5;    
+    //delay(abs(angleServo - angleServoPrec) * 1.5); // on attend 15ms pour 10°
+    //angleServoPrec = angleServo;
+    //Serial.println(String((angleServo - angleServoPrec) * 1.5));
+    monServo.write(angleServo);
   }
-    
-  /*Serial.print(gyro_x);
-  Serial.print(" - ");
-  Serial.print(dt*0.001);
-  Serial.print(" - ");
-  Serial.print(gyro_x*(dt*0.001));
-  Serial.print(" - ");
-  Serial.println(gyro_angle_x);*/
+  //  
+  
 }
 
-//http://pansenti.wordpress.com/2013/03/26/pansentis-invensense-mpu-9150-software-for-arduino-is-now-on-github/
-//Thank you to pansenti for setup code.
-//I will documented this one later.
 void MPU9150_setupCompass(){
   MPU9150_I2C_ADDRESS = 0x0C;      //change Adress to Compass
 
